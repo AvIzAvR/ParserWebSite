@@ -7,7 +7,7 @@ export function middleware(request: NextRequest) {
   const jwt = request.cookies.get("jwt")?.value
   const isLoggedIn = Boolean(jwt)
 
-  const isAuthPage = pathname === "/login" || pathname === "/signup" || pathname === "/recovery"
+  const isAuthPage = pathname === "/login" || pathname === "/signup" || pathname === "/recovery" || pathname === "/recovery/confirm" 
 
   if (!isLoggedIn && !isAuthPage) {
     return NextResponse.redirect(new URL("/login", request.url))
@@ -22,6 +22,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // "/((?!api|_next|static|.*\\..*|favicon.ico).*)",
+    "/((?!api|_next|static|.*\\..*|favicon.ico).*)",
   ],
 }

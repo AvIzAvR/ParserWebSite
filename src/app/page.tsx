@@ -1,24 +1,20 @@
 'use client'
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUser } from "@/hooks/useUser"
+import { LogoutButton } from "@/components/logout-button"; // путь подстрой под себя
 import axios from "axios";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export const predictRating = async (data: { productName: string, description: string, brandName: string, price: number }) => {
-  try {
-    const response = await axios.post(`${API_URL}/rating`, data);
-    console.log("API response:", response);
-    return response.data;
-  } catch (error) {
-    console.error("API error:", error);
-    throw error;
-  }
+  const response = await axios.post(`${API_URL}/rating`, data);
+  return response.data;
 };
 
 export default function HomePage() {
@@ -30,8 +26,40 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const { username } = useUser()
 
-  const [cards, setCards] = useState<{ title: string; predictedRating: number; date: string }[]>([]);
+  const [cards, setCards] = useState<{ productName: string; predictedRating: number; date: string }[]>([]);
+  const [initialLoading, setInitialLoading] = useState(true);
 
+  // Функция для получения истории запросов пользователя
+  useEffect(() => {
+    const fetchHistory = async (username: string) => {
+      try {
+        const response = await axios.get(`${API_URL}/requests/user/${username}`);
+        console.log(response.data); // Проверка, что пришло с API
+
+        // Преобразуем данные, извлекая только productName из requestData
+        const parsedData = response.data.map((item: any) => {
+          const requestData = JSON.parse(item.requestData); // Предполагаем, что requestData - это строка JSON
+          return {
+            productName: requestData.productName,
+            predictedRating: item.predictedRating,
+            date: item.timestamp,
+          };
+        });
+
+        setCards(parsedData); // Обновляем состояние карт с продуктами
+        setInitialLoading(false); // Завершаем начальную загрузку
+      } catch (error) {
+        console.error("Failed to fetch user history:", error);
+        setInitialLoading(false); // Завершаем начальную загрузку даже в случае ошибки
+      }
+    };
+
+    if (username) {
+      fetchHistory(username); // Загружаем историю запросов при наличии username
+    }
+  }, [username]);
+
+  // Обработка отправки формы для предсказания рейтинга
   const handleSubmit = async () => {
     const data = {
       productName,
@@ -46,7 +74,7 @@ export default function HomePage() {
       setCards((prev) => [
         ...prev,
         {
-          title: productName,
+          productName: productName, // Теперь используем productName
           predictedRating: response.predictedRating,
           date: new Date().toLocaleString(),
         },
@@ -60,7 +88,11 @@ export default function HomePage() {
 
   return (
     <div className="max-w-xl mx-auto mt-20 space-y-6 p-6 shadow-xl rounded-2xl">
-      <h1 className="text-2xl">👋 Hello, {username ?? "guest"}!</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl">👋 Hello, {username ?? "guest"}!</h1>
+        {username && <LogoutButton />}
+      </div>
+
       <div className="space-y-4">
         <div>
           <Label htmlFor="productName" className="mb-1 inline-block text-base font-medium">
@@ -90,8 +122,8 @@ export default function HomePage() {
           <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} />
         </div>
 
-        <Button className="w-full" onClick={handleSubmit}>
-          Predict Rating
+        <Button className="w-full" onClick={handleSubmit} disabled={loading}>
+          {loading ? "Predicting..." : "Predict Rating"}
         </Button>
 
         {result && (
@@ -107,15 +139,17 @@ export default function HomePage() {
         )}
 
         <div className="space-y-4 mt-6">
-          {loading ? (
+          {initialLoading ? (
             <Skeleton className="h-24 w-full rounded-xl" />
+          ) : cards.length === 0 ? (
+            <p className="text-center text-gray-400">No predictions yet.</p>
           ) : (
             cards.map((card, idx) => (
               <Card key={idx} className="border border-gray-200">
                 <CardContent className="p-4 space-y-2">
-                  <p className="font-semibold">{card.title}</p>
+                  <p className="font-semibold">{card.productName}</p> {/* Используем productName */}
                   <p>Predicted Rating: {card.predictedRating}</p>
-                  <p className="text-sm text-muted-foreground">{card.date}</p>
+                  <p className="text-sm text-muted-foreground">{new Date(card.date).toLocaleString()}</p>
                 </CardContent>
               </Card>
             ))

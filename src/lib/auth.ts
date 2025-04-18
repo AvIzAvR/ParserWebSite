@@ -23,8 +23,28 @@ export async function setAuthCookies(jwt: string, refreshToken: string, username
 }
 
 export async function clearAuthCookies() {
-  const cookieStore = await cookies()
-  cookieStore.delete("jwt")
-  cookieStore.delete("refreshToken")
-  cookieStore.delete("username")
+  const cookieStore = await cookies();
+
+  // Удаляем jwt (httpOnly + secure)
+  cookieStore.set("jwt", "", {
+    expires: new Date(0),  // Дата в прошлом
+    httpOnly: true,
+    secure: true,
+    path: "/",
+  });
+
+  // Удаляем refreshToken (httpOnly + secure)
+  cookieStore.set("refreshToken", "", {
+    expires: new Date(0),
+    httpOnly: true,
+    secure: true,
+    path: "/",
+  });
+
+  // Удаляем username (доступен клиенту)
+  cookieStore.set("username", "", {
+    expires: new Date(0),
+    path: "/",
+  });
 }
+

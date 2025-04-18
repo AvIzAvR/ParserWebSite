@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -29,6 +30,8 @@ export function RegisterForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const router = useRouter()
+  
   const {
     register,
     handleSubmit,
@@ -40,20 +43,36 @@ export function RegisterForm({
 
   const onSubmit = async (data: RegisterFormValues) => {
     try {
-      // Симуляция API вызова
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      toast.success("Registration successful!", {
-        description: `Welcome, ${data.name}!`,
+      const response = await fetch("http://localhost:8080/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: data.name,
+          email: data.email,
+          password: data.password,
+        }),
       })
-
-      reset()
+  
+      if (response.ok) {
+        toast.success("Registration successful!", {
+          description: `Welcome, ${data.name}!`,
+        })
+        router.push("/login") // лучше после регистрации на логин
+      } else {
+        const result = await response.json()
+        toast.error("Registration failed", {
+          description: result.message || "Please try again later.",
+        })
+      }
     } catch (error) {
       toast.error("Something went wrong.", {
         description: "Please try again later.",
       })
     }
   }
+  
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
