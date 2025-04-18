@@ -1,103 +1,127 @@
-import Image from "next/image";
+'use client'
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useUser } from "@/hooks/useUser"
+import axios from "axios";
 
-export default function Home() {
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+export const predictRating = async (data: { productName: string, description: string, brandName: string, price: number }) => {
+  try {
+    const response = await axios.post(`${API_URL}/rating`, data);
+    console.log("API response:", response);
+    return response.data;
+  } catch (error) {
+    console.error("API error:", error);
+    throw error;
+  }
+};
+
+export default function HomePage() {
+  const [productName, setProductName] = useState("");
+  const [description, setDescription] = useState("");
+  const [brandName, setBrandName] = useState("");
+  const [price, setPrice] = useState("");
+  const [result, setResult] = useState<{ predictedRating: number; status: string; error?: string } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const { username } = useUser()
+
+  const [cards, setCards] = useState<{ title: string; predictedRating: number; date: string }[]>([]);
+
+  const handleSubmit = async () => {
+    const data = {
+      productName,
+      description,
+      brandName,
+      price: parseFloat(price),
+    };
+    setLoading(true);
+    try {
+      const response = await predictRating(data);
+      setResult(response);
+      setCards((prev) => [
+        ...prev,
+        {
+          title: productName,
+          predictedRating: response.predictedRating,
+          date: new Date().toLocaleString(),
+        },
+      ]);
+    } catch (err) {
+      setResult({ predictedRating: 0, status: "error", error: "Failed to fetch rating" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="max-w-xl mx-auto mt-20 space-y-6 p-6 shadow-xl rounded-2xl">
+      <h1 className="text-2xl">👋 Hello, {username ?? "guest"}!</h1>
+      <div className="space-y-4">
+        <div>
+          <Label htmlFor="productName" className="mb-1 inline-block text-base font-medium">
+            Product Name
+          </Label>
+          <Input id="productName" value={productName} onChange={(e) => setProductName(e.target.value)} />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        <div>
+          <Label htmlFor="description" className="mb-1 inline-block text-base font-medium">
+            Description
+          </Label>
+          <Input id="description" value={description} onChange={(e) => setDescription(e.target.value)} />
+        </div>
+
+        <div>
+          <Label htmlFor="brandName" className="mb-1 inline-block text-base font-medium">
+            Brand Name
+          </Label>
+          <Input id="brandName" value={brandName} onChange={(e) => setBrandName(e.target.value)} />
+        </div>
+
+        <div>
+          <Label htmlFor="price" className="mb-1 inline-block text-base font-medium">
+            Price
+          </Label>
+          <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} />
+        </div>
+
+        <Button className="w-full" onClick={handleSubmit}>
+          Predict Rating
+        </Button>
+
+        {result && (
+          <div className="mt-6 bg-zinc-900 p-4 rounded-xl">
+            <p>
+              <strong>Status:</strong> {result.status}
+            </p>
+            <p>
+              <strong>Predicted Rating:</strong> {result.predictedRating}
+            </p>
+            {result.error && <p className="text-red-500">Error: {result.error}</p>}
+          </div>
+        )}
+
+        <div className="space-y-4 mt-6">
+          {loading ? (
+            <Skeleton className="h-24 w-full rounded-xl" />
+          ) : (
+            cards.map((card, idx) => (
+              <Card key={idx} className="border border-gray-200">
+                <CardContent className="p-4 space-y-2">
+                  <p className="font-semibold">{card.title}</p>
+                  <p>Predicted Rating: {card.predictedRating}</p>
+                  <p className="text-sm text-muted-foreground">{card.date}</p>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }
